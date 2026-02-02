@@ -1,0 +1,622 @@
+---
+alwaysApply: true
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔方网表日历系统</title>
+    
+    <!-- FullCalendar CSS -->
+    <link rel="stylesheet" href="lib/fullcalendar/main.min.css">
+    
+    <!-- 自定义样式 -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e1e5eb;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+        }
+        
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .login-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .login-section input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+        
+        .login-section button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .login-section button:hover {
+            background-color: #2980b9;
+        }
+        
+        .server-select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        
+        .calendar-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        #calendar {
+            height: 700px;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status-bar {
+            padding: 10px 15px;
+            background-color: #2ecc71;
+            color: white;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .status-bar.error {
+            background-color: #e74c3c;
+        }
+        
+        .fc-event {
+            border-radius: 3px;
+            border: none;
+            padding: 2px 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .fc-daygrid-event {
+            border-radius: 3px;
+        }
+
+        /* 多选下拉（可勾选） */
+        .multi-select {
+            position: relative;
+        }
+
+        .multi-select-toggle {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .multi-select-toggle::after {
+            content: '▾';
+            float: right;
+            color: #7f8c8d;
+        }
+
+        .multi-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 10;
+            display: none;
+        }
+
+        .multi-select-option {
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .multi-select-option:hover {
+            background-color: #f5f7fa;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+        
+        .btn-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .event-details {
+            line-height: 1.8;
+        }
+        
+        .event-details strong {
+            color: #2c3e50;
+        }
+        
+        .event-details p {
+            margin-bottom: 10px;
+        }
+        
+        .event-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .filter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .filter-controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 15px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+        }
+        
+        .logout-btn {
+            padding: 5px 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <h1>魔方网表日历系统</h1>
+            <div class="header-controls">
+            <select id="serverSelect" class="server-select">
+                <option value="internal">内网服务器</option>
+                <option value="external">外网服务器</option>
+                </select>
+                
+                <div id="userInfo" class="user-info" style="display: none;">
+                    <span id="userName"></span>
+                    <button id="logoutBtn" class="logout-btn">退出</button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="status-bar" id="statusBar"></div>
+        
+        <div id="loginSection" class="login-section">
+            <input type="text" id="username" placeholder="用户名">
+            <input type="password" id="password" placeholder="密码">
+            <button id="loginBtn">登录</button>
+        </div>
+        
+        <div id="mainContent" style="display: none;">
+            <div class="filter-controls">
+                <select id="filterResponsible">
+                    <option value="">所有负责人</option>
+                </select>
+                <select id="filterPriority">
+                    <option value="">所有优先级</option>
+                    <option value="1">高</option>
+                    <option value="2">中</option>
+                    <option value="3">低</option>
+                </select>
+                <select id="filterStatus">
+                    <option value="">所有状态</option>
+                    <option value="1">待开始</option>
+                    <option value="2">执行中</option>
+                    <option value="3">已完成</option>
+                </select>
+                <button id="refreshBtn" class="btn btn-primary">刷新数据</button>
+                <button id="addEventBtn" class="btn btn-success">添加日程</button>
+            </div>
+            
+            <div class="calendar-container">
+                <div id="calendar"></div>
+            </div>
+            
+            <div class="legend" id="legend"></div>
+        </div>
+    </div>
+    
+    <!-- 事件详情模态框 -->
+    <div class="modal" id="eventDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="eventDetailTitle">日程详情</div>
+                <button class="close-modal" id="closeEventDetailModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="event-details" id="eventDetailContent"></div>
+                <div class="event-actions">
+                    <button class="btn btn-danger" id="deleteEventBtn">删除</button>
+                    <button class="btn btn-secondary" id="closeDetailBtn">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑事件模态框 -->
+    <div class="modal" id="eventFormModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="eventFormTitle">添加日程</div>
+                <button class="close-modal" id="closeEventFormModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="eventForm">
+                    <div class="form-group">
+                        <label for="eventTitle">任务名称 *</label>
+                        <input type="text" id="eventTitle" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventContent">任务内容 *</label>
+                        <textarea id="eventContent" required></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventStart">开始时间 *</label>
+                            <input type="datetime-local" id="eventStart" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="eventEnd">结束时间 *</label>
+                            <input type="datetime-local" id="eventEnd" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventResponsible">负责人</label>
+                            <select id="eventResponsible">
+                                <option value="">请选择负责人</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="eventPriority">优先级</label>
+                            <select id="eventPriority">
+                                <option value="">请选择</option>
+                                <option value="1">高</option>
+                                <option value="2">中</option>
+                                <option value="3">低</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventStatus">当前状态</label>
+                        <select id="eventStatus">
+                            <option value="">请选择</option>
+                            <option value="1">待开始</option>
+                            <option value="2">执行中</option>
+                            <option value="3">已完成</option>
+                        </select>
+                    </div>
+
+                    <!-- 责任部门 / 参与部门 -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventDepartment">责任部门</label>
+                            <select id="eventDepartment">
+                                <option value="">请选择责任部门</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>参与部门（可多选）</label>
+                            <div class="multi-select" id="participateDeptMulti">
+                                <button type="button" class="multi-select-toggle" id="eventParticipateDeptToggle">
+                                    请选择参与部门
+                                </button>
+                                <div class="multi-select-dropdown" id="eventParticipateDeptDropdown">
+                                    <!-- 由 JS 填充复选项 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 主持人 / 参会人员 -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventHost">主持人</label>
+                            <select id="eventHost">
+                                <option value="">请选择主持人</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>参会人员（可多选）</label>
+                            <div class="multi-select" id="participantsMulti">
+                                <button type="button" class="multi-select-toggle" id="eventParticipantsToggle">
+                                    请选择参会人员
+                                </button>
+                                <div class="multi-select-dropdown" id="eventParticipantsDropdown">
+                                    <!-- 由 JS 填充复选项 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 记录人 -->
+                    <div class="form-group">
+                        <label for="eventRecorder">记录人</label>
+                        <select id="eventRecorder">
+                            <option value="">请选择记录人</option>
+                        </select>
+                    </div>
+                    
+                    <input type="hidden" id="eventId">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelEventBtn">取消</button>
+                <button class="btn btn-primary" id="saveEventBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FullCalendar JS -->
+    <script src="lib/fullcalendar/main.min.js"></script>
+    <script src="lib/fullcalendar/locales/zh-cn.js"></script>
+    
+    <!-- 自定义JS -->
+    <script src="js/magicflu-api.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
